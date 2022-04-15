@@ -2,6 +2,7 @@ import numpy as np
 from .graph_search import graph_search
 import scipy
 
+
 class WorldTraj(object):
     def __init__(self, world, start, goal):
         """
@@ -21,9 +22,11 @@ class WorldTraj(object):
         """
 
         # Declare inputs
+        debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
         self.margin = 0.30
         vel = 1.4
+        collision_threshold = .30
 
         ## USE ASTAR AND RDP TO RETURN POINTS ##
         # Return dense path
@@ -65,13 +68,35 @@ class WorldTraj(object):
             out = self.update(time)
             x_test[i, :] = out['x']
 
-        collisions = world.path_collisions(x_test, .25)
+        collisions = world.path_collisions(x_test, collision_threshold)
         collision = collisions.size != 0
 
+        if debug:
+            from matplotlib.lines import Line2D
+            import matplotlib.pyplot as plt
+            from flightsim.axes3ds import Axes3Ds
+
+            # Visualize the original dense path from A*, your sparse waypoints, and the
+            # smooth trajectory.
+            fig = plt.figure('A* Path, Waypoints, and Trajectory')
+            ax = Axes3Ds(fig)
+            world.draw(ax)
+            ax.plot([start[0]], [start[1]], [start[2]], 'go', markersize=16, markeredgewidth=3, markerfacecolor='none')
+            ax.plot([goal[0]], [goal[1]], [goal[2]], 'ro', markersize=16, markeredgewidth=3, markerfacecolor='none')
+            world.draw_line(ax, self.path, color='red', linewidth=1)
+            world.draw_points(ax, self.points, color='purple', markersize=8)
+            world.draw_line(ax, x_test, color='black', linewidth=2)
+            ax.legend(handles=[
+                Line2D([], [], color='red', linewidth=1, label='Dense A* Path'),
+                Line2D([], [], color='purple', linestyle='', marker='.', markersize=8, label='Sparse Waypoints'),
+                Line2D([], [], color='black', linewidth=2, label='Trajectory')],
+                loc='upper right')
+            plt.show()
+
         while collision:
-            print(f"Collision detected, adding a point")
             # find which two points its closest to
             collision_point = collisions[0]
+            print(f"Collision detected at {collision_point}, adding a point")
             t_collision = t_test[np.argmin(np.linalg.norm(x_test - collision_point, axis=1))]
             idx_before = np.where(t_collision - self.t_start > 0, t_collision - self.t_start, np.inf).argmin()
             idx_after = np.where(t_collision - self.t_start < 0, t_collision - self.t_start, -np.inf).argmax()
@@ -85,9 +110,11 @@ class WorldTraj(object):
             # Get candidate closest to midpoint
             midpoint = np.mean([self.points[idx_before], self.points[idx_after]], axis=0)
             new_point = candidate_pts[np.argmin(np.linalg.norm(midpoint - candidate_pts, axis=1))]
+            print(f"New point found at {new_point}")
 
-            #Add new point to points
+            #Add new point to points and path
             self.points = np.insert(self.points, idx_after, new_point, axis=0)
+            self.path = np.insert(self.path, candidate_end, new_point, axis=0)
 
             dist = np.linalg.norm(self.points[1:, :] - self.points[:-1, :], axis=1)  # distance of segments
             self.num_points = self.points.shape[0]
@@ -101,11 +128,11 @@ class WorldTraj(object):
             # Solve for trajectory
             travel_time = np.insert(travel_time, 0, 0)
             self.c = solve_for_trajectory(self.points, travel_time, m)
-            print("New TRAJECTORY FOUND")
+
 
             #Check collision
             # Check if trajectory collides with walls
-            num_samples = 100
+            num_samples = 1000
             x_test = np.zeros((num_samples, 3))
             t_test = np.linspace(0, self.t_start[-1], num=num_samples)
             for i in range(num_samples):
@@ -113,8 +140,31 @@ class WorldTraj(object):
                 out = self.update(time)
                 x_test[i, :] = out['x']
 
-            collisions = world.path_collisions(x_test, .25)
+            collisions = world.path_collisions(x_test, collision_threshold)
             collision = collisions.size != 0
+
+            if debug:
+                from matplotlib.lines import Line2D
+                import matplotlib.pyplot as plt
+                from flightsim.axes3ds import Axes3Ds
+
+                # Visualize the original dense path from A*, your sparse waypoints, and the
+                # smooth trajectory.
+                fig = plt.figure('A* Path, Waypoints, and Trajectory')
+                ax = Axes3Ds(fig)
+                world.draw(ax)
+                ax.plot([start[0]], [start[1]], [start[2]], 'go', markersize=16, markeredgewidth=3,
+                        markerfacecolor='none')
+                ax.plot([goal[0]], [goal[1]], [goal[2]], 'ro', markersize=16, markeredgewidth=3, markerfacecolor='none')
+                world.draw_line(ax, self.path, color='red', linewidth=1)
+                world.draw_points(ax, self.points, color='purple', markersize=8)
+                world.draw_line(ax, x_test, color='black', linewidth=2)
+                ax.legend(handles=[
+                    Line2D([], [], color='red', linewidth=1, label='Dense A* Path'),
+                    Line2D([], [], color='purple', linestyle='', marker='.', markersize=8, label='Sparse Waypoints'),
+                    Line2D([], [], color='black', linewidth=2, label='Trajectory')],
+                    loc='upper right')
+                plt.show()
 
 
     def update(self, t):
