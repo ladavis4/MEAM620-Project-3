@@ -36,7 +36,7 @@ class SE3Control(object):
         self.g = 9.81 # m/s^2
 
         # STUDENT CODE HERE
-        # 3.5 and 4 3.8, 5.5, 80, 10
+        # 3.0 and 4.2
         self.k_d = 3.0
         self.K_d = np.array([[self.k_d, 0, 0], [0, self.k_d, 0], [0, 0, self.k_d]])
         self.k_p = 4.2
