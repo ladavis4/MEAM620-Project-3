@@ -25,7 +25,7 @@ class WorldTraj(object):
         # must chose them for yourself. Your may try these default values, but
         # you should experiment with them!
         self.resolution = np.array([0.2, 0.2, 0.2])
-        self.margin = 0.5
+        self.margin = 0.25
 
         # You must store the dense path returned from your Dijkstra or AStar
         # graph search algorithm as an object member. You will need it for
@@ -56,7 +56,7 @@ class WorldTraj(object):
         points = remove_close_points(points, thresh=.35)
 
         dist = np.linalg.norm(points[1:, :] - points[:-1, :], axis=1)
-        vel = 2.5
+        vel = 1.6
         self.points = points
         self.num_points = points.shape[0]
         m = points.shape[0] - 1  # number of segments

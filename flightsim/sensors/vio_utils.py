@@ -31,10 +31,14 @@ class Vio():
         #     Noise density: 0.0001
         #     Noise density (discrete): 0.002
         #     Random walk: 1e-05
-        accelerometer_noise_density = 0.1
-        accelerometer_random_walk = 0.01
-        gyroscope_noise_density = 0.01
-        gyroscope_random_walk = 0.001
+
+        ##USER INPUT##
+        noise_scale = 1.0
+
+        accelerometer_noise_density = 0.1 * noise_scale
+        accelerometer_random_walk = 0.01 * noise_scale
+        gyroscope_noise_density = 0.01 * noise_scale
+        gyroscope_random_walk = 0.001 * noise_scale
 
         # Extract rotation that transforms IMU to left camera frame
         # body to left camera rotation
