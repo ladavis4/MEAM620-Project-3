@@ -27,13 +27,15 @@ class WorldTraj(object):
         self.margin = 0.30
         vel = 1.4
         collision_threshold = .30
+        epsilon_val = .8
+        extra_points = 10
 
         ## USE ASTAR AND RDP TO RETURN POINTS ##
         # Return dense path
         self.path, _ = graph_search(world, self.resolution, self.margin, start, goal, astar=True)
 
         # Use RDP to prune points
-        points = np.array(rdp(self.path))
+        points = np.array(rdp(self.path, epsilon=epsilon_val))
 
         # Remove the  closest point to the start/end point if the 2nd closest is closer
         if np.linalg.norm(points[0] - points[2]) <= np.linalg.norm(points[1] - points[2]):
@@ -104,17 +106,21 @@ class WorldTraj(object):
             # Get candidate points
             candidate_start = np.where(np.all(self.points[idx_before] == self.path, axis=1))[0][0]
             candidate_end = np.where(np.all(self.points[idx_after] == self.path, axis=1))[0][0]
-            candidate_pts = self.path[candidate_start:candidate_end]
-            candidate_pts = add_extra_points(candidate_pts)
+            candidate_pts = self.path[candidate_start:(candidate_end+1)]
+            candidate_pts = add_extra_points(candidate_pts, extra_pts_per_segment=extra_points)
 
             # Get candidate closest to midpoint
             midpoint = np.mean([self.points[idx_before], self.points[idx_after]], axis=0)
-            new_point = candidate_pts[np.argmin(np.linalg.norm(midpoint - candidate_pts, axis=1))]
+            candidiate_idx = np.argmin(np.linalg.norm(midpoint - candidate_pts, axis=1))
+            new_point = candidate_pts[candidiate_idx]
             print(f"New point found at {new_point}")
 
             #Add new point to points and path
             self.points = np.insert(self.points, idx_after, new_point, axis=0)
-            self.path = np.insert(self.path, candidate_end, new_point, axis=0)
+
+            if not np.any(np.all(new_point == self.path, axis=1)):
+                slot = np.floor(candidiate_idx/extra_points) + candidate_start + 1
+                self.path = np.insert(self.path, slot.astype(int), new_point, axis=0)
 
             dist = np.linalg.norm(self.points[1:, :] - self.points[:-1, :], axis=1)  # distance of segments
             self.num_points = self.points.shape[0]
@@ -309,7 +315,7 @@ def solve_for_trajectory(points, t, m):
 
     return scipy.linalg.solve(A, b)
 
-def add_extra_points(points):
+def add_extra_points(points, extra_pts_per_segment=10):
     """
     Adds extra points to the contour. This is done by using np linspace between each point
     :param points: nx2 array of contour points
@@ -318,10 +324,9 @@ def add_extra_points(points):
     points_new = points.copy()
 
     for i in range(points.shape[0] - 1):
-        points_add = np.linspace(points[i, :], points[i+1, :], 10)
+        points_add = np.linspace(points[i, :], points[i+1, :], extra_pts_per_segment)
         points_add = points_add[1:-1, :]
 
-        points_new = np.append(points_new, points_add, axis=0)
-
+        points_new = np.insert(points_new, i + 1 + (i * (extra_pts_per_segment-2)), points_add, axis=0)
 
     return points_new

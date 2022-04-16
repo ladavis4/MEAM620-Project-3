@@ -35,7 +35,7 @@ class Vio():
         ##USER INPUT##
         noise_scale = 1.0
 
-        accelerometer_noise_density = 0.1 * noise_scale
+        accelerometer_noise_density = 0.01 * noise_scale
         accelerometer_random_walk = 0.01 * noise_scale
         gyroscope_noise_density = 0.01 * noise_scale
         gyroscope_random_walk = 0.001 * noise_scale
