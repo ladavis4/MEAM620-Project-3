@@ -33,12 +33,13 @@ class Vio():
         #     Random walk: 1e-05
 
         ##USER INPUT##
+        self.debug = False
         noise_scale = 1.0
 
-        accelerometer_noise_density = 0.01 * noise_scale
-        accelerometer_random_walk = 0.01 * noise_scale
-        gyroscope_noise_density = 0.01 * noise_scale
-        gyroscope_random_walk = 0.001 * noise_scale
+        accelerometer_noise_density = 0.001 * noise_scale
+        accelerometer_random_walk = 0.0001 * noise_scale
+        gyroscope_noise_density = 0.0001 * noise_scale
+        gyroscope_random_walk = 0.00001 * noise_scale
 
         # Extract rotation that transforms IMU to left camera frame
         # body to left camera rotation
@@ -228,11 +229,12 @@ class Vio():
                         count = (norm(innovations, axis=0) < self.error_threshold).sum()
 
                         pixel_error = np.median(abs(innovations), axis=1) * self.focal_length
-                        print("{} / {} inlier ratio, x_error {:.4f}, y_error {:.4f}, norm_v {:.4f}".format(count, uv_new.shape[1],
-                                                                                                           pixel_error[0],
-                                                                                                           pixel_error[1],
-                                                                                                           norm(self.nominal_state[
-                                                                                                                    1])))
+                        if self.debug:
+                            print("{} / {} inlier ratio, x_error {:.4f}, y_error {:.4f}, norm_v {:.4f}".format(count, uv_new.shape[1],
+                                                                                                               pixel_error[0],
+                                                                                                               pixel_error[1],
+                                                                                                               norm(self.nominal_state[
+                                                                                                                        1])))
 
                         # These variables encode last stereo pose
                         self.last_R = self.nominal_state[2].as_matrix()
