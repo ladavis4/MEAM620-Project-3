@@ -22,12 +22,12 @@ class WorldTraj(object):
         """
 
         # Declare inputs
-        debug = True
+        debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
         self.margin = 0.30
         vel = 1.4
         collision_threshold = .30
-        epsilon_val = .3
+        epsilon_val = .9
         extra_points = 10
 
         ## USE ASTAR AND RDP TO RETURN POINTS ##
