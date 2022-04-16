@@ -22,17 +22,18 @@ class WorldTraj(object):
         """
 
         # Declare inputs
-        debug = False
+        debug = True
         self.resolution = np.array([0.2, 0.2, 0.2])
         self.margin = 0.30
         vel = 1.4
         collision_threshold = .30
-        epsilon_val = .8
+        epsilon_val = .3
         extra_points = 10
 
         ## USE ASTAR AND RDP TO RETURN POINTS ##
         # Return dense path
         self.path, _ = graph_search(world, self.resolution, self.margin, start, goal, astar=True)
+        astar_path = add_extra_points(self.path)
 
         # Use RDP to prune points
         points = np.array(rdp(self.path, epsilon=epsilon_val))
@@ -98,29 +99,24 @@ class WorldTraj(object):
         while collision:
             # find which two points its closest to
             collision_point = collisions[0]
-            print(f"Collision detected at {collision_point}, adding a point")
+            print(f"Collision detected at {collision_point}")
             t_collision = t_test[np.argmin(np.linalg.norm(x_test - collision_point, axis=1))]
-            idx_before = np.where(t_collision - self.t_start > 0, t_collision - self.t_start, np.inf).argmin()
-            idx_after = np.where(t_collision - self.t_start < 0, t_collision - self.t_start, -np.inf).argmax()
+            pt_idx_before = np.where(t_collision - self.t_start > 0, t_collision - self.t_start, np.inf).argmin()
+            pt_idx_after = pt_idx_before + 1
 
             # Get candidate points
-            candidate_start = np.where(np.all(self.points[idx_before] == self.path, axis=1))[0][0]
-            candidate_end = np.where(np.all(self.points[idx_after] == self.path, axis=1))[0][0]
-            candidate_pts = self.path[candidate_start:(candidate_end+1)]
-            candidate_pts = add_extra_points(candidate_pts, extra_pts_per_segment=extra_points)
+            astar_before = np.where(np.all(self.points[pt_idx_before] == astar_path, axis=1))[0][0]
+            astar_after = np.where(np.all(self.points[pt_idx_after] == astar_path, axis=1))[0][0]
+            candidate_pts = astar_path[astar_before:(astar_after+1)]
 
             # Get candidate closest to midpoint
-            midpoint = np.mean([self.points[idx_before], self.points[idx_after]], axis=0)
+            midpoint = np.mean([self.points[pt_idx_before], self.points[pt_idx_after]], axis=0)
             candidiate_idx = np.argmin(np.linalg.norm(midpoint - candidate_pts, axis=1))
             new_point = candidate_pts[candidiate_idx]
             print(f"New point found at {new_point}")
 
-            #Add new point to points and path
-            self.points = np.insert(self.points, idx_after, new_point, axis=0)
-
-            if not np.any(np.all(new_point == self.path, axis=1)):
-                slot = np.floor(candidiate_idx/extra_points) + candidate_start + 1
-                self.path = np.insert(self.path, slot.astype(int), new_point, axis=0)
+            #Add new point to points
+            self.points = np.insert(self.points, pt_idx_after, new_point, axis=0)
 
             dist = np.linalg.norm(self.points[1:, :] - self.points[:-1, :], axis=1)  # distance of segments
             self.num_points = self.points.shape[0]
