@@ -25,7 +25,7 @@ class WorldTraj(object):
         debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
         self.margin = 0.30
-        vel = 1.0
+        vel = 1.3
         collision_threshold = .30
         epsilon_val = .9
         extra_points = 10

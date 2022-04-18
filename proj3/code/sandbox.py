@@ -30,6 +30,7 @@ vio_flag = True
 control_flag = True
 path_flag = True
 animation_flag = True
+visualize_stereo_features = False
 
 np.random.seed(0)
 
@@ -67,7 +68,6 @@ initial_state = {'x': start,
 
 vio = Vio()
 
-visualize_stereo_features = True
 if visualize_stereo_features:
     plt.show()
     pass

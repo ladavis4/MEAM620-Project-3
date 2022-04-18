@@ -32,14 +32,11 @@ class Vio():
         #     Noise density (discrete): 0.002
         #     Random walk: 1e-05
 
-        ##USER INPUT##
-        self.debug = False
-        noise_scale = 1.0
-
-        accelerometer_noise_density = 0.001 * noise_scale
-        accelerometer_random_walk = 0.0001 * noise_scale
-        gyroscope_noise_density = 0.0001 * noise_scale
-        gyroscope_random_walk = 0.00001 * noise_scale
+        sensor_scaler = 1
+        accelerometer_noise_density = 0.1 * sensor_scaler
+        accelerometer_random_walk = 0.01 * sensor_scaler
+        gyroscope_noise_density = 0.01 * sensor_scaler
+        gyroscope_random_walk = 0.001 * sensor_scaler
 
         # Extract rotation that transforms IMU to left camera frame
         # body to left camera rotation
@@ -114,7 +111,12 @@ class Vio():
             self.nominal_state = self.p, self.v, self.q, self.a_b, self.w_b, self.g
 
             # Initialize error state covariance
-            self.error_state_covariance = np.diag([0, 0, 0, 0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0, 0, 0, 0])
+            self.error_state_covariance = np.zeros(18)
+            self.error_state_covariance[3:6] = self.accelerometer_random_walk**2
+            self.error_state_covariance[6:9] = self.gyroscope_random_walk**2
+            self.error_state_covariance[9:12] = self.accelerometer_noise_density**2
+            self.error_state_covariance[12:15] = self.gyroscope_noise_density**2
+            self.error_state_covariance = np.diag(self.error_state_covariance)
 
             # These variables encode last stereo pose
             self.last_R = self.nominal_state[2].as_matrix()
@@ -229,12 +231,11 @@ class Vio():
                         count = (norm(innovations, axis=0) < self.error_threshold).sum()
 
                         pixel_error = np.median(abs(innovations), axis=1) * self.focal_length
-                        if self.debug:
-                            print("{} / {} inlier ratio, x_error {:.4f}, y_error {:.4f}, norm_v {:.4f}".format(count, uv_new.shape[1],
-                                                                                                               pixel_error[0],
-                                                                                                               pixel_error[1],
-                                                                                                               norm(self.nominal_state[
-                                                                                                                        1])))
+                        print("{} / {} inlier ratio, x_error {:.4f}, y_error {:.4f}, norm_v {:.4f}".format(count, uv_new.shape[1],
+                                                                                                           pixel_error[0],
+                                                                                                           pixel_error[1],
+                                                                                                           norm(self.nominal_state[
+                                                                                                                    1])))
 
                         # These variables encode last stereo pose
                         self.last_R = self.nominal_state[2].as_matrix()

@@ -77,7 +77,7 @@ def test_mission(traj_cls, se3_control_cls, world, start, goal):
     # maximum number of features considered for VIO, increasing it will make VIO more robust, but the less efficient
     max_num_features = 150
     # feature sample resolution (in meter), increasing it will make VIO more efficient, but the less robust
-    sample_resolution = 0.75
+    sample_resolution = 1.25
     visualize_stereo_features = False
     stereo = StereoUtils(world, vio.camera_matrix, sample_resolution = sample_resolution, visualization=visualize_stereo_features, max_num_features=max_num_features)
     (sim_time, state, est_state, control, flat, exit, imu_measurements) = simulate(initial_state,
