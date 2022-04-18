@@ -42,8 +42,10 @@ class SE3Control(object):
         self.k_p = 4.2
         self.K_p = np.array([[self.k_p, 0, 0], [0, self.k_p, 0], [0, 0, self.k_p]])
 
-        self.K_R_gain = 2000
-        self.K_w_gain = 20
+        # 500 and 5 worked well
+        # 1000 and 10 did too
+        self.K_R_gain = 500
+        self.K_w_gain = 5
 
 
     def update(self, t, state, flat_output):

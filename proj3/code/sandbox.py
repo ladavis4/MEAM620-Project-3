@@ -24,10 +24,11 @@ from proj3.code.se3_control import SE3Control
 from proj3.code.world_traj import WorldTraj
 #######################################################################
 ### USER INPUT ###
-filename = 'test_maze.json'
+filename = 'test_window.json'
 # Plotting flags
 vio_flag = True
 control_flag = True
+cmd_flag = True
 path_flag = True
 animation_flag = True
 visualize_stereo_features = False
@@ -201,7 +202,6 @@ if path_flag:
 
 
 
-
     #
     # # Position and Velocity vs. Time
     # (fig, axes) = plt.subplots(nrows=2, ncols=1, sharex=True, num='Position vs Time')
@@ -332,6 +332,30 @@ if control_flag:
     ax.set_ylabel('position, m')
     ax.grid('major')
     ax.set_title('Z Position')
+
+if cmd_flag:
+    # X Position vs Time
+    (fig, axes) = plt.subplots(nrows=3, ncols=1, sharex=True, num='Commands')
+    x_cmd = flat['x']
+    ax = axes[0]
+    ax.plot(sim_time, x_cmd[:, 0], 'r--', sim_time, x_cmd[:,1 ], 'g--', sim_time, x_cmd[:, 2], 'b--', linewidth=1, alpha=1.0)
+    ax.set_ylabel('position, m')
+    ax.grid('major')
+    ax.set_title('Position')
+
+    ax = axes[1]
+    v_cmd = flat['x_dot']
+    ax.plot(sim_time, v_cmd[:, 0], 'r--', sim_time, v_cmd[:,1 ], 'g--', sim_time, v_cmd[:, 2], 'b--', linewidth=1, alpha=1.0)
+    ax.set_ylabel('position, m')
+    ax.grid('major')
+    ax.set_title('Velocity')
+
+    ax = axes[2]
+    a_cmd = flat['x_ddot']
+    ax.plot(sim_time, a_cmd[:, 0], 'r--', sim_time, a_cmd[:,1 ], 'g--', sim_time, a_cmd[:, 2], 'b--', linewidth=1, alpha=1.0)
+    ax.set_ylabel('position, m')
+    ax.grid('major')
+    ax.set_title('Acceleration')
 
 # accelerometer_measurements = []
 # for accel, _ in imu_measurements:
