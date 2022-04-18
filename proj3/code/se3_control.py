@@ -44,8 +44,8 @@ class SE3Control(object):
 
         # 500 and 5 worked well
         # 1000 and 10 did too
-        self.K_R_gain = 500
-        self.K_w_gain = 5
+        self.K_R_gain = 600
+        self.K_w_gain = 6
 
 
     def update(self, t, state, flat_output):
