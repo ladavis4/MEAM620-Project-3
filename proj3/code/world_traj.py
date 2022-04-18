@@ -25,7 +25,8 @@ class WorldTraj(object):
         debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
         self.margin = 0.30
-        vel = 1.4
+        min_vel = 1.4
+        max_vel = 2.0
 
         # SPLINE PARAMETERS
         epsilon_val = .9
@@ -57,7 +58,7 @@ class WorldTraj(object):
         m = self.points.shape[0] - 1  # number of segments
 
         # Find the time for each point
-        travel_time = dist / vel  # travel time of each segment
+        travel_time = dist / min_vel  # travel time of each segment
         self.t_start = np.cumsum(travel_time)  # time to arrive at each point
         self.t_start = np.insert(self.t_start, 0, 0)
 
@@ -126,8 +127,12 @@ class WorldTraj(object):
             self.num_points = self.points.shape[0]
             m = self.points.shape[0] - 1  # number of segments
 
-            # Find the time for each point
-            travel_time = dist / vel  # travel time of each segment
+            # Calculate the travel time for each point
+            dist_diff = np.max(dist) - np.min(dist)
+            scaler = (max_vel - min_vel) / dist_diff
+
+            vel = min_vel + scaler * (dist - np.min(dist))
+            travel_time = dist / vel
             self.t_start = np.cumsum(travel_time)  # time to arrive at each point
             self.t_start = np.insert(self.t_start, 0, 0)
 
