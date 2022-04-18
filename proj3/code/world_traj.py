@@ -26,9 +26,12 @@ class WorldTraj(object):
         self.resolution = np.array([0.2, 0.2, 0.2])
         self.margin = 0.30
         vel = 1.4
-        collision_threshold = .30
+
+        # SPLINE PARAMETERS
         epsilon_val = .9
-        extra_points = 10
+        collision_threshold = .30
+        new_point_mode = 0 # 0 = add midpoint, 1 = add point close to collision
+
 
         ## USE ASTAR AND RDP TO RETURN POINTS ##
         # Return dense path
@@ -110,10 +113,11 @@ class WorldTraj(object):
             candidate_pts = astar_path[astar_before:(astar_after+1)]
 
             # Get candidate closest to midpoint
-            midpoint = np.mean([self.points[pt_idx_before], self.points[pt_idx_after]], axis=0)
-            candidiate_idx = np.argmin(np.linalg.norm(midpoint - candidate_pts, axis=1))
-            new_point = candidate_pts[candidiate_idx]
-            print(f"New point found at {new_point}")
+            if new_point_mode == 0:
+                new_point = get_new_midpoint(candidate_pts, self.points[pt_idx_before], self.points[pt_idx_after])
+            elif new_point_mode == 1:
+                new_point = get_new_collision(candidate_pts, collision_point)
+
 
             #Add new point to points
             self.points = np.insert(self.points, pt_idx_after, new_point, axis=0)
@@ -326,3 +330,28 @@ def add_extra_points(points, extra_pts_per_segment=10):
         points_new = np.insert(points_new, i + 1 + (i * (extra_pts_per_segment-2)), points_add, axis=0)
 
     return points_new
+
+def get_new_midpoint(candidate_points, point_before, point_after):
+    """
+    Returns a new point for the spline at the midpoint between the two existing points on the spline
+
+    :return: new point
+    """
+    midpoint = np.mean([point_before, point_after], axis=0)
+    candidiate_idx = np.argmin(np.linalg.norm(midpoint - candidate_points, axis=1))
+    new_point = candidate_points[candidiate_idx]
+
+    return new_point
+
+def get_new_collision(candidate_points, collision_point):
+    """
+   Returns a new point for the spline closest to the collision point of the drone
+
+   :return: new point
+   """
+
+    # Get candidate closest to collision point
+    candidiate_idx = np.argmin(np.linalg.norm(collision_point - candidate_points, axis=1))
+    new_point = candidate_points[candidiate_idx]
+
+    return new_point
