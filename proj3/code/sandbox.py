@@ -335,27 +335,35 @@ if control_flag:
 
 if cmd_flag:
     # X Position vs Time
-    (fig, axes) = plt.subplots(nrows=3, ncols=1, sharex=True, num='Commands')
+    (fig, axes) = plt.subplots(nrows=4, ncols=1, sharex=True, num='Commands')
     x_cmd = flat['x']
     ax = axes[0]
     ax.plot(sim_time, x_cmd[:, 0], 'r--', sim_time, x_cmd[:,1 ], 'g--', sim_time, x_cmd[:, 2], 'b--', linewidth=1, alpha=1.0)
-    ax.set_ylabel('position, m')
+    ax.set_ylabel('m')
     ax.grid('major')
     ax.set_title('Position')
 
     ax = axes[1]
     v_cmd = flat['x_dot']
     ax.plot(sim_time, v_cmd[:, 0], 'r--', sim_time, v_cmd[:,1 ], 'g--', sim_time, v_cmd[:, 2], 'b--', linewidth=1, alpha=1.0)
-    ax.set_ylabel('position, m')
+    ax.set_ylabel('m/s')
     ax.grid('major')
     ax.set_title('Velocity')
 
     ax = axes[2]
     a_cmd = flat['x_ddot']
     ax.plot(sim_time, a_cmd[:, 0], 'r--', sim_time, a_cmd[:,1 ], 'g--', sim_time, a_cmd[:, 2], 'b--', linewidth=1, alpha=1.0)
-    ax.set_ylabel('position, m')
+    ax.set_ylabel('m/s^2')
     ax.grid('major')
     ax.set_title('Acceleration')
+
+    ax = axes[3]
+    j_cmd = flat['x_dddot']
+    ax.plot(sim_time, j_cmd[:, 0], 'r--', sim_time, j_cmd[:, 1], 'g--', sim_time, j_cmd[:, 2], 'b--', linewidth=1,
+            alpha=1.0)
+    ax.set_ylabel('m/s^3')
+    ax.grid('major')
+    ax.set_title('Jerk')
 
 # accelerometer_measurements = []
 # for accel, _ in imu_measurements:

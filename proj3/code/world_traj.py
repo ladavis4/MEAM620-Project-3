@@ -215,9 +215,12 @@ class WorldTraj(object):
                     T_x = np.array([t ** 5, t ** 4, t ** 3, t ** 2, t, 1])
                     T_xd = np.array([5 * t ** 4, 4 * t ** 3, 3 * t ** 2, 2 * t, 1, 0])
                     T_xdd = np.array([20 * t ** 3, 12 * t ** 2, 6 * t, 2, 0, 0])
+                    T_xddd = np.array([60 * t ** 2, 24 * t, 6, 0, 0, 0])
+
                     x = T_x @ self.c[i * 6:(i + 1) * 6, :]
                     x_dot = T_xd @ self.c[i * 6:(i + 1) * 6, :]
                     x_ddot = T_xdd @ self.c[i*6:(i+1)*6, :]
+                    x_dddot = T_xddd @ self.c[i*6:(i+1)*6, :]
                     break
 
         flat_output = {'x': x, 'x_dot': x_dot, 'x_ddot': x_ddot, 'x_dddot': x_dddot, 'x_ddddot': x_ddddot,
