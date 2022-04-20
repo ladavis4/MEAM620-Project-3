@@ -321,7 +321,9 @@ def solve_for_trajectory(points, t, m):
         A = np.append(A, mat, axis=0)
         b = np.append(b, np.array([np.zeros(3), np.zeros(3), np.zeros(3), np.zeros(3)]), axis=0)
 
-    return scipy.linalg.solve(A, b)
+    c = scipy.linalg.solve(A, b)
+    return c
+
 
 def add_extra_points(points, extra_pts_per_segment=10):
     """
