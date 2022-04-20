@@ -320,18 +320,26 @@ def solve_for_trajectory(points, t, m):
         b = np.append(b, np.array([np.zeros(3), np.zeros(3)]), axis=0)
 
 
+    # flatten everything
+    rows = b.shape[0]
+    b_flat = b.flatten('F')
+
+    A_big = scipy.linalg.block_diag(A, A, A)
+
     # Define cost function
-    cons = scipy.optimize.LinearConstraint(A, b, b)
+    cons = scipy.optimize.LinearConstraint(A_big, b_flat, b_flat)
 
     # Solve for trajectory
     opt = {'disp': False}
     arg_input = (t, m)
-    res = scipy.optimize.minimize(min_jerk_loss, np.zeros((m * 6, 1)), args=arg_input, constraints=cons, method='SLSQP',
+    res = scipy.optimize.minimize(min_jerk_loss, np.zeros(m * 6 * 3), args=arg_input, constraints=cons, method='SLSQP',
                                   options=opt)
 
+    print("Optimization Finished!")
 
+    c = res.x.reshape((m*6, 3), order='F')
+    return c
 
-    return
 
 def min_jerk_loss(c, t, m):
     """
@@ -339,23 +347,29 @@ def min_jerk_loss(c, t, m):
         c - constraint matrix [m*6 x 1] vector
         t - time for each segment
         m - number of segments
+        rows - number of rows in constraint before flattening
     OUTPUTS:
         loss - cost of the trajectory
     """
-
+    rows = m * 6
     # Construct H matrix
-    H = np.zeros([m * 6, m * 6])
+    H = np.zeros([rows, rows])
 
-    for i in range(m - 1):
-        mat = np.zeros([6, 6])
-        mat[0:3, 0:3] = np.array([[720 * t**5, 360 * t**4, 120 * t**3],
-                      [360 * t**4, 192 * t**3, 72 * t**2],
-                      [120 * t**3, 72 * t**2, 36 * t]])
+    for i in range(m):
+        t_val = i + 1
+        mat = np.array([[720 * t[t_val]**5, 360 * t[t_val]**4, 120 * t[t_val]**3],
+                      [360 * t[t_val]**4, 192 * t[t_val]**3, 72 * t[t_val]**2],
+                      [120 * t[t_val]**3, 72 * t[t_val]**2, 36 * t[t_val]]])
 
         H[(i * 6):(i * 6 + 3), (i * 6):(i * 6 + 3)] = mat
 
+    c_x = c[:rows].reshape([m * 6, 1])
+    c_y = c[rows:rows*2].reshape([m * 6, 1])
+    c_z = c[rows*2:rows*3].reshape([m * 6, 1])
 
-    cost = c.T @ H @ c
+    cost = (c_x.T @ H @ c_x)[0][0] + (c_y.T @ H @ c_y)[0][0] + (c_z.T @ H @ c_z)[0][0]
+
+    return cost
 
 
 def add_extra_points(points, extra_pts_per_segment=10):
