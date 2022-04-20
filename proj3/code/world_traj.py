@@ -24,9 +24,9 @@ class WorldTraj(object):
         # Declare inputs
         debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
-        self.margin = 0.4
-        min_vel = 2.0 # m/s
-        max_vel = 4.0 # m/s
+        self.margin = 0.5
+        min_vel = 1.7 # m/s
+        max_vel = 3.0 # m/s
         min_dist_trigger = 2.5 # meters
         max_dist_trigger = 5.0 # meters
 
