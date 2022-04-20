@@ -336,7 +336,7 @@ def solve_for_trajectory(points, t, m):
                                   options=opt)
 
     print("Optimization Finished!")
-
+    print(res)
     c = res.x.reshape((m*6, 3), order='F')
     return c
 
