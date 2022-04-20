@@ -311,17 +311,52 @@ def solve_for_trajectory(points, t, m):
     # Add continuity constraints
     for i in range(m - 1):
         t_val = i + 1
-        mat = np.zeros([4, m * 6])
+        mat = np.zeros([2, m * 6])
         mat[:, (i * 6):(i + 2) * 6] = np.array(
             [[5 * t[t_val] ** 4, 4 * t[t_val] ** 3, 3 * t[t_val] ** 2, 2 * t[t_val], 1, 0, 0, 0, 0, 0, -1, 0],
-             [20 * t[t_val] ** 3, 12 * t[t_val] ** 2, 6 * t[t_val], 2, 0, 0, 0, 0, 0, -2, 0, 0],
-             [60 * t[t_val] ** 2, 24 * t[t_val], 6, 0, 0, 0, 0, 0, -6, 0, 0, 0],
-             [120 * t[t_val], 24, 0, 0, 0, 0, 0, -24, 0, 0, 0, 0]])
+             [20 * t[t_val] ** 3, 12 * t[t_val] ** 2, 6 * t[t_val], 2, 0, 0, 0, 0, 0, -2, 0, 0]])
 
         A = np.append(A, mat, axis=0)
-        b = np.append(b, np.array([np.zeros(3), np.zeros(3), np.zeros(3), np.zeros(3)]), axis=0)
+        b = np.append(b, np.array([np.zeros(3), np.zeros(3)]), axis=0)
 
-    return scipy.linalg.solve(A, b)
+
+    # Define cost function
+    cons = scipy.optimize.LinearConstraint(A, b, b)
+
+    # Solve for trajectory
+    opt = {'disp': False}
+    arg_input = (t, m)
+    res = scipy.optimize.minimize(min_jerk_loss, np.zeros((m * 6, 1)), args=arg_input, constraints=cons, method='SLSQP',
+                                  options=opt)
+
+
+
+    return
+
+def min_jerk_loss(c, t, m):
+    """
+    INPUTS:
+        c - constraint matrix [m*6 x 1] vector
+        t - time for each segment
+        m - number of segments
+    OUTPUTS:
+        loss - cost of the trajectory
+    """
+
+    # Construct H matrix
+    H = np.zeros([m * 6, m * 6])
+
+    for i in range(m - 1):
+        mat = np.zeros([6, 6])
+        mat[0:3, 0:3] = np.array([[720 * t**5, 360 * t**4, 120 * t**3],
+                      [360 * t**4, 192 * t**3, 72 * t**2],
+                      [120 * t**3, 72 * t**2, 36 * t]])
+
+        H[(i * 6):(i * 6 + 3), (i * 6):(i * 6 + 3)] = mat
+
+
+    cost = c.T @ H @ c
+
 
 def add_extra_points(points, extra_pts_per_segment=10):
     """
