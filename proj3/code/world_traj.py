@@ -25,8 +25,10 @@ class WorldTraj(object):
         debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
         self.margin = 0.30
-        min_vel = 1.4
-        max_vel = 2.0
+        min_vel = 1.7 # m/s
+        max_vel = 3.0 # m/s
+        min_dist_trigger = 2.5 # meters
+        max_dist_trigger = 5.0 # meters
 
         # SPLINE PARAMETERS
         epsilon_val = .9
@@ -128,10 +130,14 @@ class WorldTraj(object):
             m = self.points.shape[0] - 1  # number of segments
 
             # Calculate the travel time for each point
-            dist_diff = np.max(dist) - np.min(dist)
+            dist_diff = max_dist_trigger - min_dist_trigger
             scaler = (max_vel - min_vel) / dist_diff
 
-            vel = min_vel + scaler * (dist - np.min(dist))
+            speed_up_dist = dist - min_dist_trigger
+            speed_up_dist = np.where(speed_up_dist < 0, 0, speed_up_dist)
+            speed_up_dist = np.where(speed_up_dist > dist_diff, dist_diff, speed_up_dist)
+
+            vel = min_vel + scaler * speed_up_dist
             travel_time = dist / vel
             self.t_start = np.cumsum(travel_time)  # time to arrive at each point
             self.t_start = np.insert(self.t_start, 0, 0)
@@ -336,7 +342,6 @@ def solve_for_trajectory(points, t, m):
                                   options=opt)
 
     print("Optimization Finished!")
-    print(res)
     c = res.x.reshape((m*6, 3), order='F')
     return c
 

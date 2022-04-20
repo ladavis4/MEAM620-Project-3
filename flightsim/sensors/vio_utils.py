@@ -123,6 +123,8 @@ class Vio():
             self.last_t = self.nominal_state[0]
 
             self.trace_covariance = []
+            self.imu_trace_covariance = []
+            self.stereo_trace_covariance = []
             self.pose = []
             self.cov = []
             # self.last_timestamp = sim_time # - 1/self.sampling_rate
@@ -154,6 +156,8 @@ class Vio():
         '''
         self.cov.append(self.error_state_covariance)
         self.trace_covariance.append(self.error_state_covariance.trace())
+        #self.imu_trace_covariance.append(self.error_state_covariance[9:12].trace())
+        #self.stereo_trace_covariance.append(self.error_state_covariance[12:15].trace())
         self.pose.append((self.nominal_state[2], self.nominal_state[0], self.nominal_state[1], self.nominal_state[3].copy()))
 
         # Extract prevailing a_m and w_m - transform to left camera frame

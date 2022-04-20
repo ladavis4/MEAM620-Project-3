@@ -24,7 +24,7 @@ from proj3.code.se3_control import SE3Control
 from proj3.code.world_traj import WorldTraj
 #######################################################################
 ### USER INPUT ###
-filename = 'test_maze.json'
+filename = 'test_window.json'
 # Plotting flags
 vio_flag = True
 control_flag = True
@@ -61,9 +61,10 @@ print(f"Path found in {planning_end_time - planning_start_time}s")
 
 # Set simulation parameters.
 t_final = 150
+initial_rotation = Rotation.from_euler('xyz', [0, 0, 0], degrees=True).as_quat().tolist()
 initial_state = {'x': start,
                  'v': (0, 0, 0),
-                 'q': (0, 0, 0, 1), # [i,j,k,w]
+                 'q': initial_rotation, # [i,j,k,w]
                  'w': (0, 0, 0)}
 #print("initial_state = ", initial_state)
 
