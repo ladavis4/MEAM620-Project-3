@@ -24,9 +24,9 @@ class WorldTraj(object):
         # Declare inputs
         debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
-        self.margin = 0.5
-        min_vel = 1.7 # m/s
-        max_vel = 3.0 # m/s
+        self.margin = 0.4
+        min_vel = 2.4 # m/s (2.4)
+        max_vel = 5.0 # m/s (5.0)
         min_dist_trigger = 2.5 # meters
         max_dist_trigger = 5.0 # meters
 
@@ -61,6 +61,8 @@ class WorldTraj(object):
 
         # Find the time for each point
         travel_time = dist / min_vel  # travel time of each segment
+        travel_time[0] = first_point_travel_time(self.points[0], self.points[1])
+        travel_time[-1] = final_point_travel_time(self.points[-2], self.points[-1])
         self.t_start = np.cumsum(travel_time)  # time to arrive at each point
         self.t_start = np.insert(self.t_start, 0, 0)
 
@@ -124,10 +126,8 @@ class WorldTraj(object):
 
             #Add new point to points
             self.points = np.insert(self.points, pt_idx_after, new_point, axis=0)
-
             dist = np.linalg.norm(self.points[1:, :] - self.points[:-1, :], axis=1)  # distance of segments
 
-            fix_pts = dist > 4
             self.num_points = self.points.shape[0]
             m = self.points.shape[0] - 1  # number of segments
 
@@ -141,13 +141,14 @@ class WorldTraj(object):
 
             vel = min_vel + scaler * speed_up_dist
             travel_time = dist / vel
+            travel_time[0] = first_point_travel_time(self.points[0], self.points[1])
+            travel_time[-1] = final_point_travel_time(self.points[-2], self.points[-1])
             self.t_start = np.cumsum(travel_time)  # time to arrive at each point
             self.t_start = np.insert(self.t_start, 0, 0)
 
             # Solve for trajectory
             travel_time = np.insert(travel_time, 0, 0)
             self.c = solve_for_trajectory(self.points, travel_time, m)
-
 
             #Check collision
             # Check if trajectory collides with walls
@@ -419,3 +420,23 @@ def get_new_collision(candidate_points, collision_point):
     new_point = candidate_points[candidiate_idx]
 
     return new_point
+
+def first_point_travel_time(start, point, a = 2.5):
+    """
+    Returns the travel time from the start point to the point
+
+    :return: travel time
+    """
+    t = np.sqrt(2 * np.linalg.norm(start - point) / a)
+
+    return t
+
+def final_point_travel_time(point, end, a = 2.5):
+    """
+    Returns the travel time from the start point to the point
+
+    :return: travel time
+    """
+    t = np.sqrt(2 * np.linalg.norm(end - point) / a)
+
+    return t
