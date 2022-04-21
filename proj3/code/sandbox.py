@@ -24,7 +24,7 @@ from proj3.code.se3_control import SE3Control
 from proj3.code.world_traj import WorldTraj
 #######################################################################
 ### USER INPUT ###
-filename = 'test_custom.json'
+filename = 'test_maze.json'
 
 # Plotting flags
 vio_flag = True

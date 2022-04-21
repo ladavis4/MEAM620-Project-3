@@ -41,7 +41,7 @@ def graph_search(world, resolution, margin, start, goal, astar):
             returned_path = True
             print(f"Path found")
         else:
-            height_percentage -= 0.1
+            height_percentage -= .1
             print(f"No path found, decreasing height_percentage to: {height_percentage}")
 
     return path, nodes_expanded
@@ -90,7 +90,7 @@ def return_neighbors(index, mshape, neighbor_mat, map):
 
     return neighbors.tolist()
 
-def add_upper_bound(occ_map, threshold=30, height_percentage = .7):
+def add_upper_bound(occ_map, threshold=30, height_percentage = .7, buffer = .4, resolution = .2):
     """
     This function creates a lower obstacle on the occumap when there is a distance greater than the threshold to the nearest north obstacle
     INPUTS:
@@ -99,7 +99,10 @@ def add_upper_bound(occ_map, threshold=30, height_percentage = .7):
     OUTPUTS
         occ_map_new
     """
+    if height_percentage <= 0:
+        return occ_map
 
+    ground_height = int(buffer/resolution)
     height_percentage = 1 - height_percentage
     height_threshold = int(occ_map.shape[2] * height_percentage)
 
@@ -120,6 +123,7 @@ def add_upper_bound(occ_map, threshold=30, height_percentage = .7):
         fix_idx = dist > threshold
 
         occ_map_new[j, fix_idx, height_threshold:] = True
+        occ_map_new[j, fix_idx, :ground_height] = True
     return occ_map_new
 
 def return_path_and_nodes(occ_map, start, goal, resolution, astar, norm):

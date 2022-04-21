@@ -24,17 +24,16 @@ class WorldTraj(object):
         # Declare inputs
         debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
-        self.margin = 0.4
+        self.margin = 0.35
         min_vel = 2.4 # m/s (2.4)
         max_vel = 5.0 # m/s (5.0)
         min_dist_trigger = 2.5 # meters
         max_dist_trigger = 5.0 # meters
 
         # SPLINE PARAMETERS
-        epsilon_val = .9
+        epsilon_val = .7
         collision_threshold = .30
         new_point_mode = 0 # 0 = add midpoint, 1 = add point close to collision
-
 
         ## USE ASTAR AND RDP TO RETURN POINTS ##
         # Return dense path
@@ -62,7 +61,7 @@ class WorldTraj(object):
         # Find the time for each point
         travel_time = dist / min_vel  # travel time of each segment
         travel_time[0] = first_point_travel_time(self.points[0], self.points[1])
-        travel_time[-1] = final_point_travel_time(self.points[-2], self.points[-1])
+        #travel_time[-1] = final_point_travel_time(self.points[-2], self.points[-1])
         self.t_start = np.cumsum(travel_time)  # time to arrive at each point
         self.t_start = np.insert(self.t_start, 0, 0)
 
@@ -123,6 +122,9 @@ class WorldTraj(object):
             elif new_point_mode == 1:
                 new_point = get_new_collision(candidate_pts, collision_point)
 
+            if np.any(np.all(new_point == self.points, axis=1)):
+                print("New point is already in the trajectory")
+                break
 
             #Add new point to points
             self.points = np.insert(self.points, pt_idx_after, new_point, axis=0)
@@ -142,7 +144,7 @@ class WorldTraj(object):
             vel = min_vel + scaler * speed_up_dist
             travel_time = dist / vel
             travel_time[0] = first_point_travel_time(self.points[0], self.points[1])
-            travel_time[-1] = final_point_travel_time(self.points[-2], self.points[-1])
+            #travel_time[-1] = final_point_travel_time(self.points[-2], self.points[-1])
             self.t_start = np.cumsum(travel_time)  # time to arrive at each point
             self.t_start = np.insert(self.t_start, 0, 0)
 
