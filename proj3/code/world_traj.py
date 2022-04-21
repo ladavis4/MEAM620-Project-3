@@ -344,7 +344,8 @@ def solve_for_trajectory(points, t, m):
     res = scipy.optimize.minimize(min_jerk_loss, np.zeros(m * 6 * 3), args=arg_input, constraints=cons, method='SLSQP',
                                   options=opt)
 
-    print("Optimization Finished!")
+    print(f"Optimization finished in {res.nit} iterations")
+
     c = res.x.reshape((m*6, 3), order='F')
     return c
 
