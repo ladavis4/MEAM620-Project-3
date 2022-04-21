@@ -26,10 +26,104 @@ def graph_search(world, resolution, margin, start, goal, astar):
     """
 
     # While not required, we have provided an occupancy map you may use or modify.
-    occ_map = OccupancyMap(world, resolution, margin)
-    m_shape = occ_map.map.shape
+    ### INPUTS ###
+    norm = 2
+    height_val = 6 #m
+    height_int = int(height_val/resolution[2])
+    height_percentage = .7
 
-    # Retrieve the index in the occupancy grid matrix corresponding to a position in space.
+    returned_path = False
+    while not returned_path:
+        occ_map = OccupancyMap(world, resolution, margin)
+        occ_map.map = add_upper_bound(occ_map.map, height_int, height_percentage)
+        path, nodes_expanded = return_path_and_nodes(occ_map, start, goal, resolution, astar, norm)
+        if path is not None:
+            returned_path = True
+            print(f"Path found")
+        else:
+            height_percentage -= 0.1
+            print(f"No path found, decreasing height_percentage to: {height_percentage}")
+
+    return path, nodes_expanded
+
+
+def heur(current, target, resolution, norm):
+    current_position = current * resolution
+    target_position = target * resolution
+
+    if norm == 1:
+        return np.linalg.norm(current_position - target_position, ord=1)
+    elif norm == 2:
+        return np.linalg.norm(current_position - target_position)
+
+
+def cost(current_position, target_position, resolution):
+    current_position = np.array(current_position)
+    target_position = np.array(target_position)
+    return np.linalg.norm((target_position - current_position) * resolution)
+
+
+def construct_neighbor_matrix():
+    mat = np.array([[0, 0, 0]])
+    for i in range(-1, 2):
+        for j in range(-1, 2):
+            for k in range(-1, 2):
+                if i == 0 and j == 0 and k == 0:
+                    continue
+                mat = np.append(mat, [[i, j, k]], axis=0)
+
+    mat = np.delete(mat, 0, 0)
+    return mat
+
+
+def return_neighbors(index, mshape, neighbor_mat, map):
+    # returns flat index neighbors
+    neighbors = index + neighbor_mat
+
+    neighbors = neighbors[np.where(~np.any(neighbors < 0, axis=1))]
+
+    neighbors = neighbors[np.where(np.logical_and(neighbors[:, 0] < mshape[0], neighbors[:, 0] >= 0))]
+    neighbors = neighbors[np.where(np.logical_and(neighbors[:, 1] < mshape[1], neighbors[:, 1] >= 0))]
+    neighbors = neighbors[np.where(np.logical_and(neighbors[:, 2] < mshape[2], neighbors[:, 2] >= 0))]
+
+    neighbors = neighbors[~map[tuple(neighbors.T)]]
+
+    return neighbors.tolist()
+
+def add_upper_bound(occ_map, threshold=30, height_percentage = .7):
+    """
+    This function creates a lower obstacle on the occumap when there is a distance greater than the threshold to the nearest north obstacle
+    INPUTS:
+        occ_map
+        threshold
+    OUTPUTS
+        occ_map_new
+    """
+
+    height_percentage = 1 - height_percentage
+    height_threshold = int(occ_map.shape[2] * height_percentage)
+
+    occ_map_new = occ_map.copy()
+    top_view = np.any(occ_map, axis=2)
+
+    for j in range(occ_map.shape[0]):
+        row = top_view[j, :]
+        nearest_north_wall = np.zeros_like(row, dtype=int)
+        wall_idxs = np.where(row)[0]
+        wall_idxs= np.append(wall_idxs, len(row+1))
+        wall_cnt = 0
+        for i in range(len(row)):
+            nearest_north_wall[i] = wall_idxs[wall_cnt]
+            if i >= wall_idxs[wall_cnt]:
+                wall_cnt += 1
+        dist = nearest_north_wall - np.arange(len(row))
+        fix_idx = dist > threshold
+
+        occ_map_new[j, fix_idx, height_threshold:] = True
+    return occ_map_new
+
+def return_path_and_nodes(occ_map, start, goal, resolution, astar, norm):
+    m_shape = occ_map.map.shape
     start_index = tuple(occ_map.metric_to_index(start))
     goal_index = tuple(occ_map.metric_to_index(goal))
     construct_neighbor_matrix()
@@ -69,7 +163,7 @@ def graph_search(world, resolution, margin, start, goal, astar):
                 p[tuple(v)] = u
 
                 if astar:
-                    h = heur(v, goal_index, resolution)
+                    h = heur(v, goal_index, resolution, norm)
                     f_val = d + h
                     f[tuple(v)] = f_val
                     heapq.heappush(Q, (f_val, v))
@@ -101,44 +195,5 @@ def graph_search(world, resolution, margin, start, goal, astar):
         if not np.array_equal(out[-1, :], goal) :
             out = np.append(out, [goal], axis=0)
     # Return a tuple (path, nodes_expanded)
+
     return out, nodes_expanded
-
-
-def heur(current, target, resolution):
-    current_position = current * resolution
-    target_position = target * resolution
-    return np.linalg.norm(target_position - current_position)
-
-
-def cost(current_position, target_position, resolution):
-    current_position = np.array(current_position)
-    target_position = np.array(target_position)
-    return np.linalg.norm((target_position - current_position) * resolution)
-
-
-def construct_neighbor_matrix():
-    mat = np.array([[0, 0, 0]])
-    for i in range(-1, 2):
-        for j in range(-1, 2):
-            for k in range(-1, 2):
-                if i == 0 and j == 0 and k == 0:
-                    continue
-                mat = np.append(mat, [[i, j, k]], axis=0)
-
-    mat = np.delete(mat, 0, 0)
-    return mat
-
-
-def return_neighbors(index, mshape, neighbor_mat, map):
-    # returns flat index neighbors
-    neighbors = index + neighbor_mat
-
-    neighbors = neighbors[np.where(~np.any(neighbors < 0, axis=1))]
-
-    neighbors = neighbors[np.where(np.logical_and(neighbors[:, 0] < mshape[0], neighbors[:, 0] >= 0))]
-    neighbors = neighbors[np.where(np.logical_and(neighbors[:, 1] < mshape[1], neighbors[:, 1] >= 0))]
-    neighbors = neighbors[np.where(np.logical_and(neighbors[:, 2] < mshape[2], neighbors[:, 2] >= 0))]
-
-    neighbors = neighbors[~map[tuple(neighbors.T)]]
-
-    return neighbors.tolist()

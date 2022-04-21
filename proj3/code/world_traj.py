@@ -24,9 +24,11 @@ class WorldTraj(object):
         # Declare inputs
         debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
-        self.margin = 0.30
-        min_vel = 1.4
-        max_vel = 2.0
+        self.margin = 0.4
+        min_vel = 2.4 # m/s (2.4)
+        max_vel = 5.0 # m/s (5.0)
+        min_dist_trigger = 2.5 # meters
+        max_dist_trigger = 5.0 # meters
 
         # SPLINE PARAMETERS
         epsilon_val = .9
@@ -59,6 +61,8 @@ class WorldTraj(object):
 
         # Find the time for each point
         travel_time = dist / min_vel  # travel time of each segment
+        travel_time[0] = first_point_travel_time(self.points[0], self.points[1])
+        travel_time[-1] = final_point_travel_time(self.points[-2], self.points[-1])
         self.t_start = np.cumsum(travel_time)  # time to arrive at each point
         self.t_start = np.insert(self.t_start, 0, 0)
 
@@ -122,24 +126,29 @@ class WorldTraj(object):
 
             #Add new point to points
             self.points = np.insert(self.points, pt_idx_after, new_point, axis=0)
-
             dist = np.linalg.norm(self.points[1:, :] - self.points[:-1, :], axis=1)  # distance of segments
+
             self.num_points = self.points.shape[0]
             m = self.points.shape[0] - 1  # number of segments
 
             # Calculate the travel time for each point
-            dist_diff = np.max(dist) - np.min(dist)
+            dist_diff = max_dist_trigger - min_dist_trigger
             scaler = (max_vel - min_vel) / dist_diff
 
-            vel = min_vel + scaler * (dist - np.min(dist))
+            speed_up_dist = dist - min_dist_trigger
+            speed_up_dist = np.where(speed_up_dist < 0, 0, speed_up_dist)
+            speed_up_dist = np.where(speed_up_dist > dist_diff, dist_diff, speed_up_dist)
+
+            vel = min_vel + scaler * speed_up_dist
             travel_time = dist / vel
+            travel_time[0] = first_point_travel_time(self.points[0], self.points[1])
+            travel_time[-1] = final_point_travel_time(self.points[-2], self.points[-1])
             self.t_start = np.cumsum(travel_time)  # time to arrive at each point
             self.t_start = np.insert(self.t_start, 0, 0)
 
             # Solve for trajectory
             travel_time = np.insert(travel_time, 0, 0)
             self.c = solve_for_trajectory(self.points, travel_time, m)
-
 
             #Check collision
             # Check if trajectory collides with walls
@@ -311,19 +320,64 @@ def solve_for_trajectory(points, t, m):
     # Add continuity constraints
     for i in range(m - 1):
         t_val = i + 1
-        mat = np.zeros([4, m * 6])
+        mat = np.zeros([2, m * 6])
         mat[:, (i * 6):(i + 2) * 6] = np.array(
             [[5 * t[t_val] ** 4, 4 * t[t_val] ** 3, 3 * t[t_val] ** 2, 2 * t[t_val], 1, 0, 0, 0, 0, 0, -1, 0],
-             [20 * t[t_val] ** 3, 12 * t[t_val] ** 2, 6 * t[t_val], 2, 0, 0, 0, 0, 0, -2, 0, 0],
-             [60 * t[t_val] ** 2, 24 * t[t_val], 6, 0, 0, 0, 0, 0, -6, 0, 0, 0],
-             [120 * t[t_val], 24, 0, 0, 0, 0, 0, -24, 0, 0, 0, 0]])
+             [20 * t[t_val] ** 3, 12 * t[t_val] ** 2, 6 * t[t_val], 2, 0, 0, 0, 0, 0, -2, 0, 0]])
 
         A = np.append(A, mat, axis=0)
-        b = np.append(b, np.array([np.zeros(3), np.zeros(3), np.zeros(3), np.zeros(3)]), axis=0)
+        b = np.append(b, np.array([np.zeros(3), np.zeros(3)]), axis=0)
 
-    c = scipy.linalg.solve(A, b)
+
+    # flatten everything
+    rows = b.shape[0]
+    b_flat = b.flatten('F')
+
+    A_big = scipy.linalg.block_diag(A, A, A)
+
+    # Define cost function
+    cons = scipy.optimize.LinearConstraint(A_big, b_flat, b_flat)
+
+    # Solve for trajectory
+    opt = {'disp': False}
+    arg_input = (t, m)
+    res = scipy.optimize.minimize(min_jerk_loss, np.zeros(m * 6 * 3), args=arg_input, constraints=cons, method='SLSQP',
+                                  options=opt)
+
+    print("Optimization Finished!")
+    c = res.x.reshape((m*6, 3), order='F')
     return c
 
+
+def min_jerk_loss(c, t, m):
+    """
+    INPUTS:
+        c - constraint matrix [m*6 x 1] vector
+        t - time for each segment
+        m - number of segments
+        rows - number of rows in constraint before flattening
+    OUTPUTS:
+        loss - cost of the trajectory
+    """
+    rows = m * 6
+    # Construct H matrix
+    H = np.zeros([rows, rows])
+
+    for i in range(m):
+        t_val = i + 1
+        mat = np.array([[720 * t[t_val]**5, 360 * t[t_val]**4, 120 * t[t_val]**3],
+                      [360 * t[t_val]**4, 192 * t[t_val]**3, 72 * t[t_val]**2],
+                      [120 * t[t_val]**3, 72 * t[t_val]**2, 36 * t[t_val]]])
+
+        H[(i * 6):(i * 6 + 3), (i * 6):(i * 6 + 3)] = mat
+
+    c_x = c[:rows].reshape([m * 6, 1])
+    c_y = c[rows:rows*2].reshape([m * 6, 1])
+    c_z = c[rows*2:rows*3].reshape([m * 6, 1])
+
+    cost = (c_x.T @ H @ c_x)[0][0] + (c_y.T @ H @ c_y)[0][0] + (c_z.T @ H @ c_z)[0][0]
+
+    return cost
 
 def add_extra_points(points, extra_pts_per_segment=10):
     """
@@ -365,3 +419,23 @@ def get_new_collision(candidate_points, collision_point):
     new_point = candidate_points[candidiate_idx]
 
     return new_point
+
+def first_point_travel_time(start, point, a = 2.5):
+    """
+    Returns the travel time from the start point to the point
+
+    :return: travel time
+    """
+    t = np.sqrt(2 * np.linalg.norm(start - point) / a)
+
+    return t
+
+def final_point_travel_time(point, end, a = 2.5):
+    """
+    Returns the travel time from the start point to the point
+
+    :return: travel time
+    """
+    t = np.sqrt(2 * np.linalg.norm(end - point) / a)
+
+    return t
