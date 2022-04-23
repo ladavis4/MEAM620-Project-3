@@ -32,7 +32,7 @@ class WorldTraj(object):
 
         # SPLINE PARAMETERS
         epsilon_val = .9
-        collision_threshold = .35
+        collision_threshold = .32
         new_point_mode = 0 # 0 = add midpoint, 1 = add point close to collision
 
 
