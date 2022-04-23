@@ -3,7 +3,7 @@
     "no_collision": true,
     "flight_time": 7.15,
     "flight_distance": 22.72,
-    "planning_time": 2.63,
+    "planning_time": 2.67,
     "collision_point": null,
     "sim_exit": "Success: End reached."
 }
