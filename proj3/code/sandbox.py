@@ -33,7 +33,7 @@ cmd_flag = True
 path_flag = True
 animation_flag = False
 
-np.random.seed(30)
+np.random.seed(3)
 
 # Load the test example.
 file = Path(inspect.getsourcefile(lambda:0)).parent.resolve() / '..' / 'util' / filename
