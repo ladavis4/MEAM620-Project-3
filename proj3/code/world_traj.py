@@ -24,9 +24,11 @@ class WorldTraj(object):
         # Declare inputs
         debug = False
         self.resolution = np.array([0.2, 0.2, 0.2])
-        self.margin = 0.35
-        min_vel = 1.8 # m/s (2.4)
-        max_vel = 3.5 # m/s (5.0)
+
+        self.margin = 0.4
+        min_vel = 2.0 # m/s (2.4)
+        max_vel = 4.0 # m/s (5.0)
+
         min_dist_trigger = 2.5 # meters
         max_dist_trigger = 5.0 # meters
 
@@ -67,7 +69,7 @@ class WorldTraj(object):
 
         # Solve for trajectory
         travel_time = np.insert(travel_time, 0, 0)
-        self.c = solve_for_trajectory(self.points, travel_time, m)
+        self.c = solve_traj_cont(self.points, travel_time, m)
 
         # Check if trajectory collides with walls
         num_samples = 100
@@ -103,10 +105,12 @@ class WorldTraj(object):
                 loc='upper right')
             plt.show()
 
+        cnt = 1
         while collision:
             # find which two points its closest to
             collision_point = collisions[0]
-            print(f"Collision detected at {collision_point}")
+            #print(f"Collision detected at {collision_point}")
+            cnt += 1
             t_collision = t_test[np.argmin(np.linalg.norm(x_test - collision_point, axis=1))]
             pt_idx_before = np.where(t_collision - self.t_start > 0, t_collision - self.t_start, np.inf).argmin()
             pt_idx_after = pt_idx_before + 1
@@ -150,7 +154,7 @@ class WorldTraj(object):
 
             # Solve for trajectory
             travel_time = np.insert(travel_time, 0, 0)
-            self.c = solve_for_trajectory(self.points, travel_time, m)
+            self.c = solve_traj_cont(self.points, travel_time, m)
 
             #Check collision
             # Check if trajectory collides with walls
@@ -187,6 +191,8 @@ class WorldTraj(object):
                     Line2D([], [], color='black', linewidth=2, label='Trajectory')],
                     loc='upper right')
                 plt.show()
+
+        print(f"Took {cnt} iterations to find trajectory")
 
 
     def update(self, t):
@@ -281,8 +287,10 @@ def remove_close_points(points, thresh = 1.0):
             done = True
     return points
 
-def solve_for_trajectory(points, t, m):
+def solve_traj_min(points, t, m):
     """
+    Solves for the trajectory through minimization of jerk
+
     INPUTS:
         points - sparese A* points
         t - time for each segment
@@ -346,10 +354,10 @@ def solve_for_trajectory(points, t, m):
     res = scipy.optimize.minimize(min_jerk_loss, np.zeros(m * 6 * 3), args=arg_input, constraints=cons, method='SLSQP',
                                   options=opt)
 
-    print("Optimization Finished!")
+    print(f"Optimization finished in {res.nit} iterations")
+
     c = res.x.reshape((m*6, 3), order='F')
     return c
-
 
 def min_jerk_loss(c, t, m):
     """
@@ -380,6 +388,60 @@ def min_jerk_loss(c, t, m):
     cost = (c_x.T @ H @ c_x)[0][0] + (c_y.T @ H @ c_y)[0][0] + (c_z.T @ H @ c_z)[0][0]
 
     return cost
+
+def solve_traj_cont(points, t, m):
+    """
+    Solves for the trajectory by setting the waypoints as continuious in jerk
+    INPUTS:
+        points - sparese A* points
+        t - time for each segment
+        m - number of segments
+    OUTPUTS:
+        c - constraints for the trajectory
+    """
+    b = np.zeros([3, 3])
+    A = np.zeros([3, m * 6])
+
+    # Add start point constraints
+    A[0:3, 0:6] = np.array([[0, 0, 0, 0, 0, 1],
+                            [0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 2, 0, 0]])
+    b[0, :] = points[0, :]
+    b[1, :] = np.zeros([1, 3])
+    b[2, :] = np.zeros([1, 3])
+
+    # Add end point constraints
+    mat = np.zeros([3, m * 6])
+    mat[:, -6:] = np.array([[t[-1] ** 5, t[-1] ** 4, t[-1] ** 3, t[-1] ** 2, t[-1], 1],
+                            [5 * t[-1] ** 4, 4 * t[-1] ** 3, 3 * t[-1] ** 2, 2 * t[-1], 1, 0],
+                            [20 * t[-1] ** 3, 12 * t[-1] ** 2, 6 * t[-1], 2, 0, 0]])
+    A = np.append(A, mat, axis=0)
+    b = np.append(b, np.array([points[-1], np.zeros(3), np.zeros(3)]), axis=0)
+
+    # Add intermediate point constraints
+    for i in range(m - 1):
+        t_val = i + 1
+        mat = np.zeros([2, m * 6])
+        mat[0, (i * 6):(i + 1) * 6] = np.array(
+            [[t[t_val] ** 5, t[t_val] ** 4, t[t_val] ** 3, t[t_val] ** 2, t[t_val], 1]])
+        mat[1, (i + 2) * 6 - 1] = 1
+        A = np.append(A, mat, axis=0)
+        b = np.append(b, np.array([points[t_val], points[t_val]]), axis=0)
+
+    # Add continuity constraints
+    for i in range(m - 1):
+        t_val = i + 1
+        mat = np.zeros([4, m * 6])
+        mat[:, (i * 6):(i + 2) * 6] = np.array(
+            [[5 * t[t_val] ** 4, 4 * t[t_val] ** 3, 3 * t[t_val] ** 2, 2 * t[t_val], 1, 0, 0, 0, 0, 0, -1, 0],
+             [20 * t[t_val] ** 3, 12 * t[t_val] ** 2, 6 * t[t_val], 2, 0, 0, 0, 0, 0, -2, 0, 0],
+             [60 * t[t_val] ** 2, 24 * t[t_val], 6, 0, 0, 0, 0, 0, -6, 0, 0, 0],
+             [120 * t[t_val], 24, 0, 0, 0, 0, 0, -24, 0, 0, 0, 0]])
+
+        A = np.append(A, mat, axis=0)
+        b = np.append(b, np.array([np.zeros(3), np.zeros(3), np.zeros(3), np.zeros(3)]), axis=0)
+
+    return scipy.linalg.solve(A, b)
 
 def add_extra_points(points, extra_pts_per_segment=10):
     """

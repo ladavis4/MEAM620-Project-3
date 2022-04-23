@@ -24,17 +24,17 @@ from proj3.code.se3_control import SE3Control
 from proj3.code.world_traj import WorldTraj
 #######################################################################
 ### USER INPUT ###
-filename = 'test_maze.json'
+filename = 'test_window.json'
 
 # Plotting flags
-vio_flag = True
-control_flag = True
+vio_flag = False
+control_flag = False
+visualize_stereo_features = False
 cmd_flag = True
 path_flag = True
-animation_flag = True
-visualize_stereo_features = False
+animation_flag = False
 
-np.random.seed(0)
+np.random.seed(3)
 
 # Load the test example.
 file = Path(inspect.getsourcefile(lambda:0)).parent.resolve() / '..' / 'util' / filename

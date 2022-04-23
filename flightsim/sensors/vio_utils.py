@@ -16,7 +16,7 @@ from proj3.code.vio import *
 class Vio():
     def __init__(self):
         self.sampling_rate = 200 #10000 #200
-
+        self.debug = False
         # Set up IMU
         # Noise parameters from https://github.com/ethz-asl/kalibr/wiki/IMU-Noise-Model
         # IMU configuration
@@ -235,7 +235,8 @@ class Vio():
                         count = (norm(innovations, axis=0) < self.error_threshold).sum()
 
                         pixel_error = np.median(abs(innovations), axis=1) * self.focal_length
-                        print("{} / {} inlier ratio, x_error {:.4f}, y_error {:.4f}, norm_v {:.4f}".format(count, uv_new.shape[1],
+                        if self.debug:
+                            print("{} / {} inlier ratio, x_error {:.4f}, y_error {:.4f}, norm_v {:.4f}".format(count, uv_new.shape[1],
                                                                                                            pixel_error[0],
                                                                                                            pixel_error[1],
                                                                                                            norm(self.nominal_state[
