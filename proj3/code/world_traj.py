@@ -32,7 +32,7 @@ class WorldTraj(object):
 
         # SPLINE PARAMETERS
         epsilon_val = .9
-        collision_threshold = .32
+        collision_threshold = .30
         new_point_mode = 0 # 0 = add midpoint, 1 = add point close to collision
 
 
@@ -56,8 +56,6 @@ class WorldTraj(object):
         ## SOLVE FOR TRAJECTORY ##
         self.points = points
         dist = np.linalg.norm(self.points[1:, :] - self.points[:-1, :], axis=1) # distance of segments
-
-        # Find the time for each segment
         self.num_points = self.points.shape[0]
         m = self.points.shape[0] - 1  # number of segments
 
@@ -73,7 +71,7 @@ class WorldTraj(object):
         self.c = solve_traj_cont(self.points, travel_time, m)
 
         # Check if trajectory collides with walls
-        num_samples = 1000
+        num_samples = 100
         x_test = np.zeros((num_samples, 3))
         t_test = np.linspace(0, self.t_start[-1], num=num_samples)
         for i in range(num_samples):
@@ -83,8 +81,6 @@ class WorldTraj(object):
 
         collisions = world.path_collisions(x_test, collision_threshold)
         collision = collisions.size != 0
-        if not collision:
-            print("No collisions found!")
 
         if debug:
             from matplotlib.lines import Line2D
@@ -504,5 +500,3 @@ def final_point_travel_time(point, end, a = 2.5):
     t = np.sqrt(2 * np.linalg.norm(end - point) / a)
 
     return t
-
-
