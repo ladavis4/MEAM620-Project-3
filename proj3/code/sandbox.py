@@ -24,15 +24,15 @@ from proj3.code.se3_control import SE3Control
 from proj3.code.world_traj import WorldTraj
 #######################################################################
 ### USER INPUT ###
-filename = 'test_window.json'
+filename = 'test_maze.json'
 
 # Plotting flags
 vio_flag = False
-control_flag = False
+control_flag = True
 visualize_stereo_features = False
-cmd_flag = True
+cmd_flag = False
 path_flag = True
-animation_flag = False
+animation_flag = True
 
 np.random.seed(3)
 
@@ -304,8 +304,26 @@ if path_flag:
         Line2D([], [], color='blue', linestyle='', marker='.', markersize=4, label='Flight')],
         loc='upper right')
 
+    ax.set_zlim(top=8)
+    ax.set_xlim(right=10)
+
+
 if control_flag:
     # X Position vs Time
+    fig = plt.figure(num='State Estimation Drift')
+    ax = plt.gca()
+    x = state['x']
+    x_des = flat['x']
+    x_est = est_state['x']
+    plt.plot(sim_time, x[:, 0], 'r--', linewidth=3, alpha=0.75, label="True Position")
+    plt.plot(sim_time, x_des[:, 0], 'g--', linewidth=3, alpha=0.75, label="Desired Position")
+    plt.plot(sim_time, x_est[:, 0], 'b--', linewidth=3, alpha=0.75, label="Estimated Position")
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Position (m)')
+    ax.grid('major')
+    ax.legend(loc='upper left')
+
+
     (fig, axes) = plt.subplots(nrows=3, ncols=1, sharex=True, num='Position + Vel vs Time')
     x = state['x']
     x_des = flat['x']
