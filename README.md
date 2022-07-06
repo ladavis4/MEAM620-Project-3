@@ -11,12 +11,11 @@ We prune points from the path using the Ramer–Douglas–Peucker algorithm then
 minimum-jerk trajectories, attempting to balance the tradeoff between speed through the course and control. Example A* paths (in red) and minimum-jerk trajectories (in black) are shown below. 
 
 
-<img src=images/path1.png height="200">
-<img src=images/path2.png height="200">
+<img src=images/path1.png height="200"> <img src=images/path2.png height="200">
 
 In the execution phase, we implement an Extended Kalman Filter for localization using IMU data and feature correspondences between stereo cameras. Completion on the "maze" course was one of by best efforts with a time of 6.4 seconds, shown below. 
 
-<img src=images/flying.gif height="200">
+<img src=images/flying.gif height="450">
 
 
 
